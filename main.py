@@ -13,13 +13,20 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.Surface([width, height])
         pygame.draw.rect(self.image, color, [0, 0, width, height])
         self.rect = self.image.get_rect(midbottom=(400, 550))
+        self.speed = 5
+
+    def reset(self):
+        self.rect.center = (400, 550)
 
     def input(self):
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
-            self.rect.x -= 3
-        if keys[pygame.K_RIGHT]:
-            self.rect.x += 3
+        global game_active
+        if not game_active:
+            self.reset()
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+            self.rect.x -= self.speed
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+            self.rect.x += self.speed
 
     def update(self):
         self.input()
@@ -30,22 +37,35 @@ class Ball(pygame.sprite.Sprite):
         super().__init__()
         self.image = pygame.Surface([width, height])
         pygame.draw.circle(self.image, color, (int(width // 2), int(height // 2)), 5)
-        self.rect = self.image.get_rect(midbottom=(400, 525))
+        self.rect = self.image.get_rect(midbottom=(400, 510))
+        self.y_speed = -3
+        self.x_speed = -3
+
+    def reset(self):
+        self.rect.center = (400, 510)
+        self.y_speed = -3
+        self.x_speed = -3
 
     def movement(self):
         global game_active
-        self.rect.y -= 5
         if self.rect.bottom >= 600:
+            self.reset()
             game_active = False
-        if self.rect.top <= 0 or self.rect.left <= 0 or self.rect.right >= 800:
-            pass
+
+        self.rect.y += self.y_speed
+        self.rect.x += self.x_speed
+        if self.rect.x > 800 or self.rect.x < 0:
+            self.x_speed = -self.x_speed
+        if self.rect.y < 0:
+            self.y_speed = -self.y_speed
 
     def collision(self):
         if pygame.sprite.collide_mask(ball.sprite, player.sprite):
-            self.rect.y -= 5
+            self.y_speed = -self.y_speed
+            self.x_speed = -self.x_speed
         for brick in bricks:
             if pygame.sprite.collide_mask(ball.sprite, brick):
-                self.rect.y += 5
+                self.y_speed = -self.y_speed
                 brick.kill()
 
     def update(self):
@@ -67,8 +87,14 @@ class Bricks(pygame.sprite.Sprite):
                     if brick.rect.colliderect(brick2.rect):
                         brick2.kill()
 
+    def game_over(self):
+        if len(bricks) == 0:
+            global game_active
+            game_active = False
+
     def update(self):
         self.overlap()
+        self.game_over()
 
 
 pygame.init()
